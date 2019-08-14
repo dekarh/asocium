@@ -70,9 +70,84 @@ def full_tb_write(*args):
         exc_type, exc_val, exc_tb = args[0].__class__, args[0], args[0].__traceback__
         traceback.print_tb(exc_tb, file=sys.stdout)
 
-# Загружаем найденные из остальных источников
+# Ищем все аудиофайлы isSocium() == True во всех подкаталогах каталога FIND_CATALOG
+all_audiofiles = []
+walking = list(os.walk(FIND_CATALOG))
+for root, dirs, files in walking:
+    all_audiofiles += [os.path.join(root, name) for name in files if isSocium(name)]
+all_audiofilesExt = {}
+for all_audiofile in all_audiofiles:
+    rezAudioName = all_audiofile.split('/')[len(all_audiofile.split(('/'))) - 1]
+    if rezAudioName.endswith('.wav') or rezAudioName.endswith('.mp3'):
+        rezAudioName = rezAudioName[:-4]
+    if all_audiofilesExt.get(rezAudioName, None):
+        if all_audiofile not in all_audiofilesExt[rezAudioName]:
+            all_audiofilesExt[rezAudioName].append(all_audiofile)
+    else:
+        all_audiofilesExt[rezAudioName] = [all_audiofile]
+
+# Ищем ссылки на аудиофайлы во всех .xlsx файлах
 snilsesProblem = {}
 snilsesProblemShort = {}
+all_xlsxfiles = []
+for root, dirs, files in os.walk(FIND_CATALOG):
+    all_xlsxfiles += [os.path.join(root, name) for name in files if name.endswith('.xlsx')]
+all_snils_audios = {}
+max_all_xlsxfiles = len(all_xlsxfiles)
+for jj in range(0, max_all_xlsxfiles):
+    try:
+        all_xlsxfile = all_xlsxfiles[jj]
+        wb = openpyxl.load_workbook(filename=all_xlsxfile, read_only=True)
+        for sheetname in wb.sheetnames:
+            sheet = wb[sheetname]
+            if not sheet.max_row:
+                print('Файл', all_xlsxfile, 'Excel некорректно сохранен OpenPyxl. Откройте и пересохраните его')
+                continue
+            print('\t накоплено связей СНИЛС-audio:', len(snilsesProblem), '\n', all_xlsxfile + '!' + sheetname + ' ('
+                  + str(jj) + ' из ' + str(max_all_xlsxfiles) + ')')
+            # Аудиофайл[СНИЛС]
+            table_j_end = 0  # Если больше 10 пустых ячеек - на следующую срочку
+            table_k_end = 0  # Если больше 10 пустых строчек - заканчиваем чтение таблицы
+            for j, row in enumerate(sheet.rows):
+                if table_j_end == 10 and j == 10:
+                    break
+                snils = 0
+                audiofiles = []
+                for k, cell in enumerate(row):
+                    if cell.value != None:
+                        table_j_end = 0
+                        table_k_end = 0
+                    else:
+                        table_j_end += 1
+                        table_k_end += 1
+                    if table_k_end > 10:
+                        break
+                    if isSNILS(cell.value):
+                        snils = l(cell.value)
+                    else:
+                        rezAudio = isAudio(cell.value)
+                        if rezAudio[0]:
+                            if rezAudio[1].endswith('.wav') or rezAudio[1].endswith('.mp3'):
+                                rezAudioName = rezAudio[1][:-4]
+                            elif rezAudio[1].endswith('.') or rezAudio[1].endswith('/'):
+                                rezAudioName = rezAudio[1][:-1]
+                            else:
+                                rezAudioName = rezAudio[1]
+                            audiofiles.append(rezAudioName)
+                if snils and len(audiofiles):
+                    for audiofile in audiofiles:
+                        if all_audiofilesExt.get(audiofile, None):
+                            if snilsesProblem.get(snils, None):
+                                for temp in all_audiofilesExt[audiofile]:
+                                    if temp not in snilsesProblem[snils]:
+                                        snilsesProblem[snils].append(temp)
+                                if audiofile not in snilsesProblemShort[snils]:
+                                    snilsesProblemShort[snils].append(audiofile)
+                            else:
+                                snilsesProblem[snils] = all_audiofilesExt[audiofile]
+                                snilsesProblemShort[snils] = [audiofile]
+    except Exception as e:
+        full_tb_write(e)
 q1 = """
 wb = openpyxl.load_workbook(filename=PROBLEMREESTR, read_only=True)
 for sheetname in wb.sheetnames:
@@ -96,30 +171,11 @@ for sheetname in wb.sheetnames:
         snilsesProblemShort[snils] = snilsProblemAudios
 """
 
-# Ищем все аудиофайлы isSocium() == True во всех подкаталогах каталога FIND_CATALOG
-all_audiofiles = []
-walking = list(os.walk(FIND_CATALOG))
-for root, dirs, files in walking:
-    all_audiofiles += [os.path.join(root, name) for name in files if isSocium(name)]
-all_audiofilesExt = {}
-for all_audiofile in all_audiofiles:
-    rezAudioName = all_audiofile.split('/')[len(all_audiofile.split(('/'))) - 1]
-    if rezAudioName.endswith('.wav') or rezAudioName.endswith('.mp3'):
-        rezAudioName = rezAudioName[:-4]
-    if all_audiofilesExt.get(rezAudioName, None):
-        if all_audiofile not in all_audiofilesExt[rezAudioName]:
-            all_audiofilesExt[rezAudioName].append(all_audiofile)
-    else:
-        all_audiofilesExt[rezAudioName] = [all_audiofile]
-
 # Вытаскиваем словарь phonesSNILSES[телефон]=[СНИЛС1,...,СНИЛСn] из Сатурна для Социума
 dbconfig_crm = read_config(filename='asocium.ini', section='crm')
 dbconn = MySQLConnection(**dbconfig_crm)
 cursor = dbconn.cursor()
-sql = 'SELECT ca.client_phone, cl.`number` FROM saturn_crm.clients AS cl ' \
-      'LEFT JOIN saturn_crm.contracts AS co ON co.client_id = cl.client_id ' \
-      'LEFT JOIN saturn_crm.callcenter AS ca ON ca.contract_id = co.id ' \
-      'GROUP BY ca.client_phone' # WHERE cl.subdomain_id IN (6, 8, 13)
+sql = 'SELECT phone, snils FROM lekarh.alone_phone_snils'
 cursor.execute(sql)
 phonesSNILSES = {}
 rows = cursor.fetchall()
@@ -203,6 +259,7 @@ for all_audiofileExt in all_audiofilesExt:
         else:
             snilsesProblem[snils] = all_audiofilesExt[all_audiofileExt]
             snilsesProblemShort[snils] = [all_audiofile[1]]
+
 
 # Собираем сначала из точных источников, потом из второстепенных
 wb = openpyxl.Workbook(write_only=True)
