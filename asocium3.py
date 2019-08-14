@@ -70,6 +70,66 @@ def full_tb_write(*args):
         exc_type, exc_val, exc_tb = args[0].__class__, args[0], args[0].__traceback__
         traceback.print_tb(exc_tb, file=sys.stdout)
 
+# Загружаем найденные из остальных источников
+snilsesProblem = {}
+snilsesProblemShort = {}
+q1 = """
+wb = openpyxl.load_workbook(filename=PROBLEMREESTR, read_only=True)
+for sheetname in wb.sheetnames:
+    sheet = wb[sheetname]
+    if not sheet.max_row:
+        print('Файл', PROBLEMREESTR, 'Excel некорректно сохранен OpenPyxl. Откройте и пересохраните его')
+        continue
+    for j, row in enumerate(sheet.rows):
+        snils = l(row[0].value)
+        snilsProblemAudios = []
+        for k, cell in enumerate(row):
+            if k and cell.value:
+                snilsProblemAudio = isAudio(cell.value)
+                if snilsProblemAudio[1] not in snilsProblemAudios:
+                    snilsProblemAudios.append(snilsProblemAudio[1])
+                if snilsesProblem.get(snils, None):
+                    if cell.value not in snilsesProblem[snils]:
+                        snilsesProblem[snils].append(cell.value)
+                else:
+                    snilsesProblem[snils] = [cell.value]
+        snilsesProblemShort[snils] = snilsProblemAudios
+"""
+
+# Ищем все аудиофайлы isSocium() == True во всех подкаталогах каталога FIND_CATALOG
+all_audiofiles = []
+walking = list(os.walk(FIND_CATALOG))
+for root, dirs, files in walking:
+    all_audiofiles += [os.path.join(root, name) for name in files if isSocium(name)]
+all_audiofilesExt = {}
+for all_audiofile in all_audiofiles:
+    rezAudioName = all_audiofile.split('/')[len(all_audiofile.split(('/'))) - 1]
+    if rezAudioName.endswith('.wav') or rezAudioName.endswith('.mp3'):
+        rezAudioName = rezAudioName[:-4]
+    if all_audiofilesExt.get(rezAudioName, None):
+        if all_audiofile not in all_audiofilesExt[rezAudioName]:
+            all_audiofilesExt[rezAudioName].append(all_audiofile)
+    else:
+        all_audiofilesExt[rezAudioName] = [all_audiofile]
+
+# Вытаскиваем словарь phonesSNILSES[телефон]=[СНИЛС1,...,СНИЛСn] из Сатурна для Социума
+dbconfig_crm = read_config(filename='asocium.ini', section='crm')
+dbconn = MySQLConnection(**dbconfig_crm)
+cursor = dbconn.cursor()
+sql = 'SELECT ca.client_phone, cl.`number` FROM saturn_crm.clients AS cl ' \
+      'LEFT JOIN saturn_crm.contracts AS co ON co.client_id = cl.client_id ' \
+      'LEFT JOIN saturn_crm.callcenter AS ca ON ca.contract_id = co.id ' \
+      'GROUP BY ca.client_phone' # WHERE cl.subdomain_id IN (6, 8, 13)
+cursor.execute(sql)
+phonesSNILSES = {}
+rows = cursor.fetchall()
+for row in rows:
+    if phonesSNILSES.get(row[0], None):
+        if row[1] not in phonesSNILSES[row[0]]:
+            phonesSNILSES[row[0]].append(row[1])
+    else:
+        phonesSNILSES[row[0]] = [row[1]]
+
 # Считываем рестр надежных найденных за 2017 и 2018
 snilsesT = []
 wb = openpyxl.load_workbook(filename=TRUSTREESTR, read_only=True)
@@ -117,102 +177,46 @@ for file in files:
                         if snils not in snilsesI:
                             snilsesI.append(snils)
 snilsesInput = tuple(snilsesI)
+
 print('\n Уникальных СНИЛС в запросе:', len(snilsesInput))
-
-
-# Ищем все аудиофайлы isSocium() == True во всех подкаталогах каталога FIND_CATALOG
-all_audiofiles = []
-for root, dirs, files in os.walk(FIND_CATALOG):
-    all_audiofiles += [os.path.join(root, name) for name in files if isSocium(name)]
-all_audiofilesExt = {}
-for all_audiofile in all_audiofiles:
-    rezAudioName = all_audiofile.split('/')[len(all_audiofile.split(('/'))) - 1]
-    if rezAudioName.endswith('.wav') or rezAudioName.endswith('.mp3'):
-        rezAudioName = rezAudioName[:-4]
-    if all_audiofilesExt.get(rezAudioName, None):
-        if all_audiofile not in all_audiofilesExt[rezAudioName]:
-            all_audiofilesExt[rezAudioName].append(all_audiofile)
-    else:
-        all_audiofilesExt[rezAudioName] = [all_audiofile]
-
-# Вытаскиваем словарь phonesSNILSES[телефон]=[СНИЛС1,...,СНИЛСn] из Сатурна для Социума
-dbconfig_crm = read_config(filename='alone.ini', section='crm')
-dbconn = MySQLConnection(**dbconfig_crm)
-cursor = dbconn.cursor()
-sql = 'SELECT ca.client_phone, cl.`number` FROM saturn_crm.clients AS cl ' \
-      'LEFT JOIN saturn_crm.contracts AS co ON co.client_id = cl.client_id ' \
-      'LEFT JOIN saturn_crm.callcenter AS ca ON ca.contract_id = co.id ' \
-      'WHERE cl.subdomain_id = 6 GROUP BY ca.client_phone'
-cursor.execute(sql)
-phonesSNILSES = {}
-rows = cursor.fetchall()
-for row in rows:
-    if phonesSNILSES.get(row[0], None):
-        if row[1] not in phonesSNILSES[row[0]]:
-            phonesSNILSES[row[0]].append(row[1])
-    else:
-        phonesSNILSES[row[0]] = [row[1]]
-
-# Загружаем найденные из остальных источников
-snilsesProblem = {}
-snilsesProblemShort = {}
-wb = openpyxl.load_workbook(filename=PROBLEMREESTR, read_only=True)
-for sheetname in wb.sheetnames:
-    sheet = wb[sheetname]
-    if not sheet.max_row:
-        print('Файл', PROBLEMREESTR, 'Excel некорректно сохранен OpenPyxl. Откройте и пересохраните его')
-        continue
-    for j, row in enumerate(sheet.rows):
-        snils = l(row[0].value)
-        snilsProblemAudios = []
-        for k, cell in enumerate(row):
-            if k and cell.value:
-                snilsProblemAudio = isAudio(cell.value)
-                if snilsProblemAudio[1] not in snilsProblemAudios:
-                    snilsProblemAudios.append(snilsProblemAudio[1])
-                if snilsesProblem.get(snils, None):
-                    if cell.value not in snilsesProblem[snils]:
-                        snilsesProblem[snils].append(cell.value)
-                else:
-                    snilsesProblem[snils] = [cell.value]
-        snilsesProblemShort[snils] = snilsProblemAudios
-
 print('\n Восстановили СНИЛС из остальных источников:', len(snilsesProblem))
 
 # Перебираем файлы и дозаполняем массив [СНИЛС] = [файл1, файл2...]
 for all_audiofileExt in all_audiofilesExt:
     all_audiofile = isAudio(all_audiofileExt)
-    snils = 0
+    snilsesTek = []
     if all_audiofile[0] == 'длинный':
-        snils = l(all_audiofile[1][20:31])
+        snilsesTek = [l(all_audiofile[1][20:31])]
     elif all_audiofile[0] == 'короткий':
         phone = l(all_audiofile[1][15:26])
         # через телефон найти СНИЛС (если есть)
         if phonesSNILSES.get(phone, None):
-
-
-
+            for snils in phonesSNILSES[phone]:
+                snilsesTek.append(snils)
+    for snils in snilsesTek:
+        if snilsesProblem.get(snils, None):
+            for temp in all_audiofilesExt[all_audiofileExt]:
+                if temp not in snilsesProblem[snils]:
+                    snilsesProblem[snils].append(temp)
+            if all_audiofile[1] not in snilsesProblemShort[snils]:
+                snilsesProblemShort[snils].append(all_audiofile[1])
+        else:
+            snilsesProblem[snils] = all_audiofilesExt[all_audiofileExt]
+            snilsesProblemShort[snils] = [all_audiofile[1]]
 
 # Собираем сначала из точных источников, потом из второстепенных
 wb = openpyxl.Workbook(write_only=True)
 ws = wb.create_sheet('Остальные')
-shure_rez = {}
-problem_rez = {}
-for snils in snilses:
-    if snils_audios_fullpath.get(snils, None):
-        shure_rez[snils] = snils_audios_fullpath[snils]
-    elif all_snils_audios.get(snils):
-        all_snils_audio_vars = []                       # Собираем все файлы сюда
-        for all_snils_audio in all_snils_audios:
-            if all_audiofilesExt.get(all_snils_audio):
-                for all_audiofileExt in all_audiofilesExt[all_snils_audio]:
-                    all_snils_audio_vars.append(all_audiofileExt)
-        problem_rez[snils] = all_snils_audio_vars
-        ws.append([fine_snils(snils)] + all_snils_audio_vars)
+pronblem_count = 0
+for snils in snilsesInput:
+    if snils not in snilsesTrust:
+        if snilsesProblem.get(snils, None):
+            ws.append([fine_snils(snils)] + snilsesProblem[snils])
+            pronblem_count += 1
 wb.save('Остальные.xlsx')
-print('Закрыто СНИЛСов из точных источников:', len(shure_rez))
-print('Закрыто СНИЛСов из остальных источников:', len(problem_rez))
-
+print('Закрыто СНИЛСов из точных источников:', len(snilsesTrust))
+print('Закрыто СНИЛСов из остальных источников:', pronblem_count)
+pass
 
 
 
