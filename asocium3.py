@@ -6,6 +6,7 @@ from lib import l, fine_snils, read_config
 DIRS_SOCIUM = ['/media/da3/asteriskBeagleAl/Socium/2017/', '/media/da3/asteriskBeagleAl/Socium/2018/']
 FIND_CATALOG = '/media/da3/asteriskBeagleAl'
 TRUSTREESTR = '/home/da3/Beagle/потеряшкиАудиозаписи/Надежные.xlsx'
+TRUSTREESTR2 = 'Надежные.xlsx'
 PROBLEMREESTR = '/home/da3/Beagle/потеряшкиАудиозаписи/Остальные.xlsx'
 REESTRS = '/home/da3/Beagle/потеряшкиАудиозаписи/реестры/'
 

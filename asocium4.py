@@ -31,18 +31,22 @@ def isAudio(audio):
             t1 = t1[:-1]
         if t1.endswith('.mp3') or t1.endswith('.wav'):
             t1 = t1[:-4]
-        if len(t1) > 26:
+        if len(t1) > 30:
             if t1[2] == '.' and t1[5] == '.' and t1[10] == '_' and (t1[13] == '-' or t1[13] == '_') and \
                     (t1[16] == '-' or t1[16] == '_'):
                 return ['длинный', t1]
             elif len(''.join([char for i, char in enumerate(t1) if char in string.digits and i < 26])) == 25 \
                     and t1[14] == '_':
                 return ['короткий', t1]
+            elif len(''.join([char for i, char in enumerate(t1) if char in string.digits and i < 30])) == 25 \
+                    and t1[14] == '_' and t1[29] == '_':
+                return ['короткий+СНИЛС', t1]
             else:
                 return ['', audio]
         else:
             return ['', audio]
     return ['', audio]
+
 
 def isSocium(audio):
     if audio != None:
@@ -54,6 +58,9 @@ def isSocium(audio):
                 return True
             elif len(''.join([char for i, char in enumerate(t1) if char in string.digits and i < 26])) == 25 \
                     and t1[14] == '_' and (t1[:4] == '2017' or t1[:4] == '2018'):
+                return True
+            elif len(''.join([char for i, char in enumerate(t1) if char in string.digits and i < 30])) == 25 \
+                    and t1[14] == '_' and t1[29] == '_' and (t1[:4] == '2017' or t1[:4] == '2018'):
                 return True
             else:
                 return False
@@ -167,7 +174,7 @@ for row in rows:
     else:
         phonesSNILSES[row[0]] = [row[1]]
 
-# Считываем рестры 2017 и 2018
+# Считываем реестры 2017 и 2018
 files = os.listdir(REESTRS)
 snilsesI = []
 for file in files:
@@ -270,8 +277,33 @@ for dir_socium in DIRS_SOCIUM:
                             if not snils and not len(audiofiles):
                                 pass
                             elif len(audiofiles):
-                                for audiofile in audiofiles:
-                                    print('\tНе нашлось СНИЛСа для:', dir_socium + directory + '/' + audiofileExt[i])
+                                for i, audiofile in enumerate(audiofiles):
+                                    audiofileTek = isAudio(audiofile)
+                                    if audiofileTek[0] == 'длинный':
+                                        snils = l(audiofileTek[1][20:31])
+                                        if snils_audios.get(snils, None):
+                                            if audiofile not in snils_audios[snils]:
+                                                snils_audios[snils].append(audiofile)
+                                                snils_audios_fullpath[snils].append(dir_socium + directory + '/' +
+                                                                                    audiofileExt[i])
+                                        else:
+                                            snils_audios[snils] = [audiofile]
+                                            snils_audios_fullpath[snils] = [dir_socium + directory + '/' +
+                                                                            audiofileExt[i]]
+                                    elif audiofileTek[0] == 'короткий+СНИЛС':
+                                        snils = l(audiofileTek[1][15:29])
+                                        if snils_audios.get(snils, None):
+                                            if audiofile not in snils_audios[snils]:
+                                                snils_audios[snils].append(audiofile)
+                                                snils_audios_fullpath[snils].append(dir_socium + directory + '/' +
+                                                                                    audiofileExt[i])
+                                        else:
+                                            snils_audios[snils] = [audiofile]
+                                            snils_audios_fullpath[snils] = [dir_socium + directory + '/' +
+                                                                            audiofileExt[i]]
+                                    else:
+                                        print('\tНе нашлось СНИЛСа для:', dir_socium + directory + '/' +
+                                              audiofileExt[i])
                             elif snils:
                                 #print('\tВ директории', dir_socium + directory,'Не нашлось аудиофайла для СНИЛСа:', snils)
                                 pass
@@ -300,6 +332,8 @@ for all_audiofileExt in all_audiofilesExt:
     snilsesTek = []
     if all_audiofile[0] == 'длинный':
         snilsesTek = [l(all_audiofile[1][20:31])]
+    elif all_audiofile[0] == 'короткий+СНИЛС':
+        snilsesTek = [l(all_audiofile[1][15:29])]
     elif all_audiofile[0] == 'короткий':
         phone = l(all_audiofile[1][15:26])
         # через телефон найти СНИЛС (если есть)
@@ -368,43 +402,44 @@ for i, snils in enumerate(snilsesTrust):
             sucess = True
         except Exception as e:
             full_tb_write(e)
-            print('Ошибка - пробуем ещё раз')
+            print('Ошибка - пробуем ещё раз', snils)
     print('Скопировано', i, 'из', len(snilsesTrust))
 
 print('\nТеперь Остальные\n')
 
 # Разбираем остальные аудиофайлы по папочкам
 for i, snils in enumerate(snilsesProblem):
-    sucess = False
-    while not sucess:
-        try:
-            if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils)):
-                os.mkdir(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils))
-            audiofilesShort = []
-            for audiofile in snilsesProblem[snils]:
-                audiofileShort = isAudio(audiofile)[1]
-                if os.path.exists(audiofile): #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)):
-                    if audiofileShort in audiofilesShort:
-                        if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
-                                              '-' + str(Counter(audiofilesShort)[audiofileShort]) + audiofile[-4:]):
-                            shutil.copy(audiofile #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)
-                                        , OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
-                                        '-' + str(Counter(audiofilesShort)[audiofileShort]) + audiofile[-4:])
-                            audiofilesShort.append(audiofileShort)
+    if snils in snilsesInput and snils not in snilsesTrustTuple:
+        sucess = False
+        while not sucess:
+            try:
+                if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils)):
+                    os.mkdir(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils))
+                audiofilesShort = []
+                for audiofile in snilsesProblem[snils]:
+                    audiofileShort = isAudio(audiofile)[1]
+                    if os.path.exists(audiofile): #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)):
+                        if audiofileShort in audiofilesShort:
+                            if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
+                                                  '-' + str(Counter(audiofilesShort)[audiofileShort]) + audiofile[-4:]):
+                                shutil.copy(audiofile #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)
+                                            , OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
+                                            '-' + str(Counter(audiofilesShort)[audiofileShort]) + audiofile[-4:])
+                                audiofilesShort.append(audiofileShort)
+                        else:
+                            if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' +
+                                                  audiofileShort + audiofile[-4:]):
+                                shutil.copy(audiofile #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)
+                                            , OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
+                                            audiofile[-4:])
+                                audiofilesShort.append(audiofileShort)
                     else:
-                        if not os.path.exists(OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' +
-                                              audiofileShort + audiofile[-4:]):
-                            shutil.copy(audiofile #.replace(FIND_CATALOG, CHANGE_ON_WINDOWS)
-                                        , OUTPUT_CATALOG + 'Остальные/' + fine_snils_(snils) + '/' + audiofileShort +
-                                        audiofile[-4:])
-                            audiofilesShort.append(audiofileShort)
-                else:
-                    print('!!! Нет исходного файла', audiofile)
-            sucess = True
-        except Exception as e:
-            full_tb_write(e)
-            print('Ошибка - пробуем ещё раз')
-    print('Скопировано', i, 'из', len(snilsesProblem))
+                        print('!!! Нет исходного файла', audiofile)
+                sucess = True
+            except Exception as e:
+                full_tb_write(e)
+                print('Ошибка - пробуем ещё раз', snils)
+        print('Скопировано', i, 'из', len(snilsesProblem))
 
 
 
