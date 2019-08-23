@@ -21,7 +21,7 @@ mp3wav_files = {}
 with open('mp3wav_list.csv') as file_handler:
     for line in file_handler:
         line_list = line.split('\t')
-        size = round(int(line_list[0]) / 1024)
+        size = int(int(line_list[0]) / 1024)
         mp3wav_md5 = binascii.unhexlify(line_list[1])
         mp3wav_file = os.path.join(line_list[2], line_list[3])
         if mp3wav_files.get(mp3wav_md5):
@@ -41,14 +41,14 @@ for directory in directories:
         if file.endswith('.mp3') or file.endswith('.wav'):
             wav_file_path = os.path.abspath(START_DIRECTORY + directory + '/' + file)
             if not os.path.exists(wav_file_path):
-                print(wav_file_path)
+                print wav_file_path
             else:
-                wav_size = round(os.path.getsize(wav_file_path) / 1024)
+                wav_size = int(os.path.getsize(wav_file_path) / 1024)
                 wav_md5 = md5(wav_file_path)
                 if mp3wav_files.get(wav_md5):
                     if mp3wav_files[wav_md5].get(wav_size):
                         if len(mp3wav_files[wav_md5][wav_size]) > 1:
-                            print('Дубли, берём только первый файл:', mp3wav_files[wav_md5][wav_size])
+                            print 'Дубли, берём только первый файл:' + str(mp3wav_files[wav_md5][wav_size])
                         mp3wav_list.write(START_DIRECTORY + directory + '/' + file + '\t'
                                           + mp3wav_files[wav_md5][wav_size][0])
 mp3wav_list.close()
