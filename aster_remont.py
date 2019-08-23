@@ -36,21 +36,22 @@ with open('mp3wav_list.csv') as file_handler:
 mp3wav_list = open(datetime.now().strftime('%Y-%m-%d_%H-%M_') + 'mp3wav.csv', 'wt')
 directories = os.listdir(START_DIRECTORY)
 for directory in directories:
-    files = os.listdir(START_DIRECTORY + directory)
-    for file in files:
-        if file.endswith('.mp3') or file.endswith('.wav'):
-            wav_file_path = os.path.abspath(START_DIRECTORY + directory + '/' + file)
-            if not os.path.exists(wav_file_path):
-                print wav_file_path
-            else:
-                wav_size = int(os.path.getsize(wav_file_path) / 1024)
-                wav_md5 = md5(wav_file_path)
-                if mp3wav_files.get(wav_md5):
-                    if mp3wav_files[wav_md5].get(wav_size):
-                        if len(mp3wav_files[wav_md5][wav_size]) > 1:
-                            print 'Дубли, берём только первый файл:' + str(mp3wav_files[wav_md5][wav_size])
-                        mp3wav_list.write(START_DIRECTORY + directory + '/' + file + '\t'
-                                          + mp3wav_files[wav_md5][wav_size][0])
+    if os.path.isdir(START_DIRECTORY + directory):
+        files = os.listdir(START_DIRECTORY + directory)
+        for file in files:
+            if file.endswith('.mp3') or file.endswith('.wav'):
+                wav_file_path = os.path.abspath(START_DIRECTORY + directory + '/' + file)
+                if not os.path.exists(wav_file_path):
+                    print wav_file_path
+                else:
+                    wav_size = int(os.path.getsize(wav_file_path) / 1024)
+                    wav_md5 = md5(wav_file_path)
+                    if mp3wav_files.get(wav_md5):
+                        if mp3wav_files[wav_md5].get(wav_size):
+                            if len(mp3wav_files[wav_md5][wav_size]) > 1:
+                                print 'Дубли, берём только первый файл:' + str(mp3wav_files[wav_md5][wav_size])
+                            mp3wav_list.write(START_DIRECTORY + directory + '/' + file + '\t'
+                                              + mp3wav_files[wav_md5][wav_size][0])
 mp3wav_list.close()
 pass
 
