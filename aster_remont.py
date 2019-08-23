@@ -34,7 +34,7 @@ with open('mp3wav_list.csv') as file_handler:
             mp3wav_files[mp3wav_md5] = {size: [mp3wav_file]}
 
 mp3wav_list = open(datetime.now().strftime('%Y-%m-%d_%H-%M_') + 'mp3wav.csv', 'wt')
-directories = os.listdir(START_DIRECTORY)
+directories = sorted(os.listdir(START_DIRECTORY))
 for directory in directories:
     if os.path.isdir(START_DIRECTORY + directory):
         files = os.listdir(START_DIRECTORY + directory)
