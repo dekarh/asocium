@@ -4,9 +4,10 @@ __author__ = 'Denis'
 import os
 import hashlib
 import binascii
+from datetime import datetime
 
-#START_DIRECTORY = '/back/'
-START_DIRECTORY = '/home/da3/Beagle/потеряшкиАудиозаписи/образец/'
+START_DIRECTORY = '/back/'
+#START_DIRECTORY = '/home/da3/Beagle/потеряшкиАудиозаписи/образец/'
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -25,18 +26,20 @@ with open('mp3wav_list.csv') as file_handler:
         mp3wav_file = os.path.join(line_list[2], line_list[3])
         if mp3wav_files.get(mp3wav_md5):
             if mp3wav_files[mp3wav_md5].get(size):
-                mp3wav_files[mp3wav_md5][size].append(mp3wav_files)
+                if mp3wav_file not in mp3wav_files[mp3wav_md5][size]:
+                    mp3wav_files[mp3wav_md5][size].append(mp3wav_file)
             else:
-                mp3wav_files[mp3wav_md5][size] = [mp3wav_files]
+                mp3wav_files[mp3wav_md5][size] = [mp3wav_file]
         else:
-            mp3wav_files[mp3wav_md5] = {size: [mp3wav_files]}
+            mp3wav_files[mp3wav_md5] = {size: [mp3wav_file]}
 
+mp3wav_list = open(datetime.now().strftime('%Y-%m-%d_%H-%M_') + 'mp3wav.csv', 'wt')
 directories = os.listdir(START_DIRECTORY)
 for directory in directories:
     files = os.listdir(START_DIRECTORY + directory)
     for file in files:
         if file.endswith('.mp3') or file.endswith('.wav'):
-            wav_file_path = os.path.abspath(START_DIRECTORY + directory + file)
+            wav_file_path = os.path.abspath(START_DIRECTORY + directory + '/' + file)
             if not os.path.exists(wav_file_path):
                 print(wav_file_path)
             else:
@@ -44,24 +47,11 @@ for directory in directories:
                 wav_md5 = md5(wav_file_path)
                 if mp3wav_files.get(wav_md5):
                     if mp3wav_files[wav_md5].get(wav_size):
-
-
-
-
-                    if wav_doubles.get(wav_index):
-                        if wav_file_path not in wav_doubles[wav_index]:
-                            wav_doubles[wav_index].append(wav_file_path)
-                    else:
-                        wav_doubles[wav_index] = [os.path.join(wav_files_md5[wav_index][0], wav_files_md5[wav_index][1]),
-                                                    wav_file_path]
-                else:
-                    wav_files_md5[wav_index] = wav_file
-                    wav_list.write(str(wav_size) + '\t' + wav_md5 + '\t' + wav_file[0] + '\t' + wav_file[1] + '\n')
-        wav_list.close()
-        for wav_index in wav_doubles:
-            print(wav_index)
-            for wav_file in wav_doubles[wav_index]:
-                print('\t', wav_file)
+                        if len(mp3wav_files[wav_md5][wav_size]) > 1:
+                            print('Дубли, берём только первый файл:', mp3wav_files[wav_md5][wav_size])
+                        mp3wav_list.write(START_DIRECTORY + directory + '/' + file + '\t'
+                                          + mp3wav_files[wav_md5][wav_size][0])
+mp3wav_list.close()
 pass
 
 
