@@ -29,8 +29,8 @@ for file in files:
                         saturn_file = saturn_file[:13] + ':' + saturn_file[13 + 1:]
                     if saturn_file[16] == '-':
                         saturn_file = saturn_file[:16] + ':' + saturn_file[16 + 1:]
-                    saturn_file = '%' + saturn_file
-                    cursor_crm.execute("SELECT id FROM saturn_crm.callcenter WHERE call_record LIKE '%s'")
+                    saturn_file = '%' + saturn_file#.replace('_', '\_')
+                    cursor_crm.execute("SELECT id FROM callcenter WHERE call_record LIKE %s", (saturn_file,))
                     rows = cursor_crm.fetchall()
                     if len(rows):
                         callcenter_id = rows[0][0]
