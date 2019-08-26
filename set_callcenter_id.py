@@ -14,6 +14,7 @@ dbconfig_alone = read_config(filename='asocium.ini', section='alone')
 dbconn_alone = MySQLConnection(**dbconfig_alone)
 cursor_alone = dbconn_alone.cursor()
 files = os.listdir('.')
+is_ready = False # Пропускаем цикл пока не True
 for file in files:
     if file.endswith('_mp3wav.csv'):
         with open(file) as file_handler:
@@ -23,13 +24,19 @@ for file in files:
                 if len(a_p_f.split('/back/recup_dir.')) > 1:
                     aster_path = int(a_p_f.split('/back/recup_dir.')[1].split('/')[0])
                     aster_file = a_p_f.split('/back/recup_dir.')[1].split('/')[1]
+                    if aster_file == 'f2960098456.wav':
+                        is_ready = True
+                        continue
+                    if not is_ready:
+                        continue
                     saturn_file = line.split('\t')[1].split('/')[len(line.split('\t')[1].split(('/'))) - 1]
                     saturn_file = saturn_file.strip('\n')
-                    if saturn_file[13] == '-':
-                        saturn_file = saturn_file[:13] + ':' + saturn_file[13 + 1:]
-                    if saturn_file[16] == '-':
-                        saturn_file = saturn_file[:16] + ':' + saturn_file[16 + 1:]
-                    saturn_file = '%' + saturn_file#.replace('_', '\_')
+                    if len(saturn_file) > 16:
+                        if saturn_file[13] == '-':
+                            saturn_file = saturn_file[:13] + ':' + saturn_file[13 + 1:]
+                        if saturn_file[16] == '-':
+                            saturn_file = saturn_file[:16] + ':' + saturn_file[16 + 1:]
+                    saturn_file = '%' + saturn_file
                     cursor_crm.execute("SELECT id FROM callcenter WHERE call_record LIKE %s", (saturn_file,))
                     rows = cursor_crm.fetchall()
                     if len(rows):
