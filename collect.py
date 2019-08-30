@@ -2,6 +2,7 @@
 __author__ = 'Denis'
 
 import os
+import sys
 import hashlib
 import shutil
 import string
@@ -69,7 +70,7 @@ if not os.path.exists('collect.csv'):
     print('Нет файла collect.csv Для его получения обратитесть в техподдержку.'
           '\n\nДля выхода из программы нажмите Enter ...')
     input()
-    os._exit()
+    sys.exit()
 with open('collect.csv', encoding='utf-8' ) as file_handler:
     for line in file_handler:
         line_list = line.split('\t')
@@ -102,7 +103,7 @@ all_audiofiles = []
 for drive in  drives:
     walking = list(os.walk(drive + '/'))
     for root, dirs, files in walking:
-        all_audiofiles += [os.path.join(root, name) for name in files if isAudioBool(name)]
+        all_audiofiles += [os.path.join(root, name) for name in files if isAudioBool(os.path.join(root, name))]
 audiofiles = tuple(all_audiofiles)
 print('Найдено', len(audiofiles), 'аудиозаписей звонков')
 
