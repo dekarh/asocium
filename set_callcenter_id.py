@@ -24,7 +24,7 @@ for file in files:
                 if len(a_p_f.split('/back/recup_dir.')) > 1:
                     aster_path = int(a_p_f.split('/back/recup_dir.')[1].split('/')[0])
                     aster_file = a_p_f.split('/back/recup_dir.')[1].split('/')[1]
-                    if aster_file == 'f2960098456.wav':
+                    if aster_file == 'f4095301304.wav':
                         is_ready = True
                         continue
                     if not is_ready:
@@ -45,6 +45,8 @@ for file in files:
                                              (aster_path, aster_file, callcenter_id))
                         dbconn_alone.commit()
                         line_ok = True
+                    else:
+                        callcenter_id = ''
                 if not line_ok:
                     print('Не нашли в Сатурне:', callcenter_id, aster_path, aster_file)
 
