@@ -15,21 +15,22 @@ dbconfig_alone = read_config(filename='asocium.ini', section='alone')
 dbconn_alone = MySQLConnection(**dbconfig_alone)
 cursor_alone = dbconn_alone.cursor()
 files = os.listdir('.')
-is_ready = False # Пропускаем цикл пока не True
+#is_ready = False # Пропускаем цикл пока не True, пока не дошли до нужной строчки
 for file in files:
     if file.endswith('_mp3wav.csv'):
         with open(file) as file_handler:
             for line in file_handler:
                 line_ok = False
                 a_p_f = line.split('\t')[0]
+                callcenter_id = ''
                 if len(a_p_f.split('/back/recup_dir.')) > 1:
                     aster_path = int(a_p_f.split('/back/recup_dir.')[1].split('/')[0])
                     aster_file = a_p_f.split('/back/recup_dir.')[1].split('/')[1]
-                    if aster_file == 'f4095301304.wav':
-                        is_ready = True
-                        continue
-                    if not is_ready:
-                        continue
+                    #if aster_file == 'f4095301304.wav':
+                    #    is_ready = True
+                    #    continue
+                    #if not is_ready:
+                    #    continue
                     saturn_file = line.split('\t')[1].split('/')[len(line.split('\t')[1].split(('/'))) - 1]
                     saturn_file = saturn_file.strip('\n')
                     if len(saturn_file) > 16:
@@ -46,10 +47,9 @@ for file in files:
                                              (aster_path, aster_file, callcenter_id))
                         dbconn_alone.commit()
                         line_ok = True
-                    else:
-                        callcenter_id = ''
                 if not line_ok:
                     print('Не нашли в Сатурне:', callcenter_id, aster_path, aster_file)
+print('Всё')
 
 
 
