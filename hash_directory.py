@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+# Создаем файл с именами, размерами и сигнатурами файлов с полными именами
 __author__ = 'Denis'
 
 import os
+from datetime import datetime
 import hashlib
 
-START_DIRECTORY = '/media/da3/asteriskBeagleAl/'
+START_DIRECTORY = '/home/da3/AUDIO/newFiles/'
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -15,7 +17,8 @@ def md5(fname):
     #return hash_md5.digest()
 
 walking = list(os.walk(START_DIRECTORY))
-# xlsx файлы
+# xlsx файлы - пока не обрабатываем
+q = """
 xlsx_files = []
 xlsx_files_md5 = {}
 xlsx_doubles = {}
@@ -45,12 +48,13 @@ for xlsx_index in xlsx_doubles:
     print(xlsx_index)
     for xlsx_file in xlsx_doubles[xlsx_index]:
         print('\t', xlsx_file)
+"""
 
 # mp3 и wav файлы
 wav_files = []
 wav_files_md5 = {}
 wav_doubles = {}
-wav_list = open('mp3wav_list.csv', 'wt')
+wav_list = open(datetime.now().strftime('%Y-%m-%d') + 'mp3wav_list.csv', 'wt')
 for root, dirs, files in walking:
     wav_files += [[root, name] for name in files if name.endswith('.mp3') or name.endswith('.wav')]
 for wav_file in wav_files:

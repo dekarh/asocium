@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# print() -> print и python 2.7
+# Генерируем файл совпадающих сигнатур по всем файлам файлопомойки
+
 __author__ = 'Denis'
 
 import os
@@ -32,7 +35,6 @@ with open('mp3wav_list.csv') as file_handler:
                 mp3wav_files[mp3wav_md5][size] = [mp3wav_file]
         else:
             mp3wav_files[mp3wav_md5] = {size: [mp3wav_file]}
-
 mp3wav_list = open(datetime.now().strftime('%Y-%m-%d_%H-%M_') + 'mp3wav.csv', 'wt')
 directories = sorted(os.listdir(START_DIRECTORY))
 for directory in directories:
@@ -54,7 +56,6 @@ for directory in directories:
                                               + mp3wav_files[wav_md5][wav_size][0])
 mp3wav_list.close()
 pass
-
 
 
 

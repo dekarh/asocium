@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# python3 windows 7
+# Собираем аудиозаписи, сигнатуры которых отсутствуют в collect.csv
 __author__ = 'Denis'
 
 import os
@@ -103,7 +105,8 @@ all_audiofiles = []
 for drive in  drives:
     walking = list(os.walk(drive + '/'))
     for root, dirs, files in walking:
-        all_audiofiles += [os.path.join(root, name) for name in files if isAudioBool(os.path.join(root, name))]
+        all_audiofiles += [os.path.join(root, name) for name in files if
+                           (name.endswith('.mp3') or name.endswith('.wav')) and isAudioBool(os.path.join(root, name))]
 audiofiles = tuple(all_audiofiles)
 print('Найдено', len(audiofiles), 'аудиозаписей звонков')
 
@@ -126,11 +129,3 @@ for i, audiofile in enumerate(audiofiles):
 print('Обработано', len(audiofiles), 'из', len(audiofiles), '\n Обработка завершена. Не забудьте скопировать в '
                             'техподдержку все файлы из папки newFiles.\n\nДля выхода из программы нажмите Enter ...')
 input()
-
-
-
-
-
-
-
-

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Помечаем в БД совпадающие по сигнатурам файлы по файлу *_mp3wav.csv
 __author__ = 'Denis'
 
 import os

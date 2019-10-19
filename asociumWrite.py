@@ -1,3 +1,4 @@
+# Копирование найденных надежных и ненадежных аудиозаписей по Социуму за 2017-2018 на архивный диск
 import openpyxl, traceback
 import os, string, sys, shutil
 from collections import Counter
